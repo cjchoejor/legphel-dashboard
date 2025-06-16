@@ -13,11 +13,11 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
 
+# Fix SPA routing - redirect all routes to index.html
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-  conditions = {Role = ["admin"]}
 
 # Handle API CORS issues
 [[headers]]
