@@ -1,7 +1,6 @@
 // Configuration file for API settings
 const CONFIG = {
-    // Correct IP address
-    API_BASE_URL: 'http://119.2.105.142:3800',
+    API_BASE_URL: 'http://119.2.105.142:3800/api',
     REFRESH_INTERVAL: 5000, // 5 seconds
     ITEMS_PER_PAGE: 50,
     DATE_FORMAT: 'DD/MM/YYYY',

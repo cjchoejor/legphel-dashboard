@@ -1,27 +1,26 @@
 // Main dashboard functionality
 class Dashboard {
     constructor() {
-        this.apiBaseUrl = CONFIG.API_BASE_URL;
         this.currentSection = 'bill-summary';
-        this.billSummaryInstance = null;
         this.init();
     }
 
     init() {
         this.setupNavigation();
         this.setupModal();
-        // Wait for billSummary to be ready
         this.waitForBillSummary();
     }
 
     waitForBillSummary() {
-        // Check if billSummary is ready, if not wait a bit
-        if (window.billSummary) {
-            this.billSummaryInstance = window.billSummary;
-            this.loadBillSummary();
-        } else {
-            setTimeout(() => this.waitForBillSummary(), 100);
-        }
+        // Wait for billSummary to be initialized
+        const checkBillSummary = () => {
+            if (window.billSummary) {
+                this.loadBillSummary();
+            } else {
+                setTimeout(checkBillSummary, 100);
+            }
+        };
+        checkBillSummary();
     }
 
     setupNavigation() {
@@ -75,34 +74,14 @@ class Dashboard {
     }
 
     loadBillSummary() {
-        if (this.currentSection === 'bill-summary' && this.billSummaryInstance) {
-            this.billSummaryInstance.loadData();
+        if (this.currentSection === 'bill-summary' && window.billSummary) {
+            window.billSummary.loadData();
         }
     }
 
     showError(message) {
         console.error('Dashboard Error:', message);
-        // Create a temporary error notification
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'error-notification';
-        errorDiv.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background-color: #dc2626;
-            color: white;
-            padding: 15px 20px;
-            border-radius: 5px;
-            z-index: 1001;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-        `;
-        errorDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${message}`;
-        
-        document.body.appendChild(errorDiv);
-        
-        setTimeout(() => {
-            errorDiv.remove();
-        }, 5000);
+        // You can implement a toast notification here
     }
 }
 

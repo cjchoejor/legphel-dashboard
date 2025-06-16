@@ -59,7 +59,6 @@ class BillSummary {
     }
 
     setupEventListeners() {
-        // Refresh button
         document.addEventListener('click', (e) => {
             if (e.target.id === 'refreshBtn' || e.target.closest('#refreshBtn')) {
                 this.loadData();
@@ -71,7 +70,6 @@ class BillSummary {
     }
 
     startAutoRefresh() {
-        // Refresh data every 5 seconds
         this.refreshInterval = setInterval(() => {
             if (document.getElementById('bill-summary').classList.contains('active')) {
                 this.loadData();
@@ -84,26 +82,25 @@ class BillSummary {
         const statusText = document.getElementById('statusText');
         
         statusIcon.className = 'fas fa-spinner fa-spin';
+        statusIcon.style.color = '#888';
         statusText.textContent = 'Testing connection...';
         
         try {
-            // Test direct connection to your server
-            const testUrl = `${CONFIG.API_BASE_URL}/fnb_bill_summary_legphel_eats`;
-            console.log('Testing connection to:', testUrl);
+            const isConnected = await window.apiService.testConnection();
             
-            const response = await fetch(testUrl, {
-                method: 'GET',
-                mode: 'no-cors' // This won't give us the data but will test if server is reachable
-            });
-            
-            statusIcon.className = 'fas fa-circle';
-            statusIcon.style.color = '#16a34a';
-            statusText.textContent = 'Server reachable - Using proxy for data';
-            
+            if (isConnected) {
+                statusIcon.className = 'fas fa-circle';
+                statusIcon.style.color = '#16a34a';
+                statusText.textContent = 'Server connected successfully';
+            } else {
+                statusIcon.className = 'fas fa-circle';
+                statusIcon.style.color = '#dc2626';
+                statusText.textContent = 'Server connection failed';
+            }
         } catch (error) {
             statusIcon.className = 'fas fa-circle';
             statusIcon.style.color = '#dc2626';
-            statusText.textContent = 'Connection failed - Server may be down';
+            statusText.textContent = 'Connection test failed';
         }
     }
 
@@ -128,7 +125,7 @@ class BillSummary {
         if (isConnected) {
             statusIcon.className = 'fas fa-circle';
             statusIcon.style.color = '#16a34a';
-            statusText.textContent = 'Connected to server';
+            statusText.textContent = 'Connected - Data loaded successfully';
         } else {
             statusIcon.className = 'fas fa-circle';
             statusIcon.style.color = '#dc2626';
@@ -149,11 +146,11 @@ class BillSummary {
                         <p><strong>Error:</strong> ${errorMessage}</p>
                         <p><strong>Server:</strong> ${CONFIG.API_BASE_URL}</p>
                         <hr style="margin: 15px 0; border-color: #404040;">
-                        <p><strong>Possible solutions:</strong></p>
+                        <p><strong>Server Status:</strong></p>
                         <ul style="text-align: left; display: inline-block; margin: 10px 0;">
-                            <li>Check if your server is running on port 3800</li>
-                            <li>Verify the IP address: 119.105.142 (not 119.105.0.142)</li>
-                            <li>Your server needs CORS headers for HTTPS sites</li>
+                            <li>Make sure your server is running on port 3800</li>
+                            <li>Verify server has CORS headers configured</li>
+                            <li>Check if the API endpoint exists</li>
                             <li>Try the "Test Connection" button above</li>
                         </ul>
                         <button onclick="billSummary.loadData()" style="
@@ -233,7 +230,7 @@ class BillSummary {
 
     formatTime(timeString) {
         if (!timeString) return 'N/A';
-        return timeString.substring(0, 5); // HH:MM format
+        return timeString.substring(0, 5);
     }
 
     formatAmount(amount) {
@@ -265,7 +262,6 @@ class BillSummary {
             const modal = document.getElementById('billDetailsModal');
             const modalBody = document.getElementById('billDetailsContent');
             
-            // Show modal with loading state
             modalBody.innerHTML = `
                 <div class="loading">
                     <i class="fas fa-spinner fa-spin"></i> Loading bill details...
@@ -278,7 +274,7 @@ class BillSummary {
             
         } catch (error) {
             console.error('Error loading bill details:', error);
-            const modalBody = document.getElementById('billDetailsContent');
+                        const modalBody = document.getElementById('billDetailsContent');
             modalBody.innerHTML = `
                 <div class="error-message">
                     <i class="fas fa-exclamation-triangle"></i>
@@ -288,7 +284,7 @@ class BillSummary {
         }
     }
 
-        renderBillDetails(details, billNo) {
+    renderBillDetails(details, billNo) {
         const modalBody = document.getElementById('billDetailsContent');
         
         if (!details || details.length === 0) {
@@ -425,3 +421,4 @@ class BillSummary {
 document.addEventListener('DOMContentLoaded', () => {
     window.billSummary = new BillSummary();
 });
+
