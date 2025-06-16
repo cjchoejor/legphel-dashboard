@@ -1,7 +1,6 @@
 // Bill Summary functionality
 class BillSummary {
     constructor() {
-        this.apiBaseUrl = CONFIG.API_BASE_URL;
         this.refreshInterval = null;
         this.init();
     }
@@ -17,9 +16,21 @@ class BillSummary {
         billSummarySection.innerHTML = `
             <div class="bill-summary-header">
                 <h1><i class="fas fa-receipt"></i> Bill Summary</h1>
-                <button class="refresh-btn" id="refreshBtn">
-                    <i class="fas fa-sync-alt"></i> Refresh
-                </button>
+                <div class="header-controls">
+                    <button class="refresh-btn" id="refreshBtn">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                    <button class="test-connection-btn" id="testConnectionBtn">
+                        <i class="fas fa-wifi"></i> Test Connection
+                    </button>
+                </div>
+            </div>
+            
+            <div class="connection-status" id="connectionStatus">
+                <div class="status-indicator">
+                    <i class="fas fa-circle" id="statusIcon"></i>
+                    <span id="statusText">Checking connection...</span>
+                </div>
             </div>
             
             <div class="bills-table-container">
@@ -53,11 +64,14 @@ class BillSummary {
             if (e.target.id === 'refreshBtn' || e.target.closest('#refreshBtn')) {
                 this.loadData();
             }
+            if (e.target.id === 'testConnectionBtn' || e.target.closest('#testConnectionBtn')) {
+                this.testConnection();
+            }
         });
     }
 
     startAutoRefresh() {
-        // Refresh data every 5 seconds as requested
+        // Refresh data every 5 seconds
         this.refreshInterval = setInterval(() => {
             if (document.getElementById('bill-summary').classList.contains('active')) {
                 this.loadData();
@@ -65,60 +79,95 @@ class BillSummary {
         }, CONFIG.REFRESH_INTERVAL);
     }
 
-    async loadData() {
+    async testConnection() {
+        const statusIcon = document.getElementById('statusIcon');
+        const statusText = document.getElementById('statusText');
+        
+        statusIcon.className = 'fas fa-spinner fa-spin';
+        statusText.textContent = 'Testing connection...';
+        
         try {
-            // Try different approaches to handle CORS
-            let response;
+            // Test direct connection to your server
+            const testUrl = `${CONFIG.API_BASE_URL}/fnb_bill_summary_legphel_eats`;
+            console.log('Testing connection to:', testUrl);
             
-            try {
-                // First try with HTTPS
-                response = await fetch(`${this.apiBaseUrl}/api/fnb_bill_summary_legphel_eats`, {
-                    method: 'GET',
-                    mode: 'cors',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                });
-            } catch (httpsError) {
-                console.log('HTTPS failed, trying HTTP...');
-                // If HTTPS fails, try HTTP
-                response = await fetch(`${CONFIG.API_BASE_URL_FALLBACK}/api/fnb_bill_summary_legphel_eats`, {
-                    method: 'GET',
-                    mode: 'cors',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                });
-            }
+            const response = await fetch(testUrl, {
+                method: 'GET',
+                mode: 'no-cors' // This won't give us the data but will test if server is reachable
+            });
             
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const bills = await response.json();
-            this.renderBills(bills);
+            statusIcon.className = 'fas fa-circle';
+            statusIcon.style.color = '#16a34a';
+            statusText.textContent = 'Server reachable - Using proxy for data';
             
         } catch (error) {
-            console.error('Error loading bills:', error);
-            this.showCORSError();
+            statusIcon.className = 'fas fa-circle';
+            statusIcon.style.color = '#dc2626';
+            statusText.textContent = 'Connection failed - Server may be down';
         }
     }
 
-    showCORSError() {
+    async loadData() {
+        try {
+            console.log('Loading bills data...');
+            const bills = await window.apiService.getBills();
+            this.renderBills(bills);
+            this.updateConnectionStatus(true);
+            
+        } catch (error) {
+            console.error('Error loading bills:', error);
+            this.showConnectionError(error.message);
+            this.updateConnectionStatus(false);
+        }
+    }
+
+    updateConnectionStatus(isConnected) {
+        const statusIcon = document.getElementById('statusIcon');
+        const statusText = document.getElementById('statusText');
+        
+        if (isConnected) {
+            statusIcon.className = 'fas fa-circle';
+            statusIcon.style.color = '#16a34a';
+            statusText.textContent = 'Connected to server';
+        } else {
+            statusIcon.className = 'fas fa-circle';
+            statusIcon.style.color = '#dc2626';
+            statusText.textContent = 'Connection failed';
+        }
+    }
+
+    showConnectionError(errorMessage) {
         const tbody = document.getElementById('billsTableBody');
         tbody.innerHTML = `
             <tr>
-                <td colspan="7" style="text-align: center; padding: 40px; color: #dc2626;">
-                    <i class="fas fa-exclamation-triangle" style="font-size: 24px; margin-bottom: 10px;"></i><br>
-                    <strong>Connection Error</strong><br>
-                    <small style="color: #888; margin-top: 10px; display: block;">
-                        Cannot connect to server. This might be due to:<br>
-                        • CORS (Cross-Origin) restrictions<br>
-                        • Server is not running<br>
-                        • Network connectivity issues<br><br>
-                        <strong>For Development:</strong><br>
-                        Your server needs CORS headers to work with HTTPS sites.
-                    </small>
+                <td colspan="7" style="text-align: center; padding: 40px;">
+                    <div style="color: #dc2626; margin-bottom: 15px;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 24px; margin-bottom: 10px;"></i><br>
+                        <strong>Connection Error</strong>
+                    </div>
+                    <div style="color: #888; font-size: 14px; line-height: 1.5;">
+                        <p><strong>Error:</strong> ${errorMessage}</p>
+                        <p><strong>Server:</strong> ${CONFIG.API_BASE_URL}</p>
+                        <hr style="margin: 15px 0; border-color: #404040;">
+                        <p><strong>Possible solutions:</strong></p>
+                        <ul style="text-align: left; display: inline-block; margin: 10px 0;">
+                            <li>Check if your server is running on port 3800</li>
+                            <li>Verify the IP address: 119.105.142 (not 119.105.0.142)</li>
+                            <li>Your server needs CORS headers for HTTPS sites</li>
+                            <li>Try the "Test Connection" button above</li>
+                        </ul>
+                        <button onclick="billSummary.loadData()" style="
+                            background: #dc2626; 
+                            color: white; 
+                            border: none; 
+                            padding: 8px 16px; 
+                            border-radius: 4px; 
+                            cursor: pointer;
+                            margin-top: 10px;
+                        ">
+                            <i class="fas fa-redo"></i> Try Again
+                        </button>
+                    </div>
                 </td>
             </tr>
         `;
@@ -224,19 +273,7 @@ class BillSummary {
             `;
             modal.style.display = 'block';
 
-            // Try to fetch bill details
-            let response;
-            try {
-                response = await fetch(`${this.apiBaseUrl}/api/fnb_bill_details_legphel_eats/${billNo}`);
-            } catch (httpsError) {
-                response = await fetch(`${CONFIG.API_BASE_URL_FALLBACK}/api/fnb_bill_details_legphel_eats/${billNo}`);
-            }
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const billDetails = await response.json();
+            const billDetails = await window.apiService.getBillDetails(billNo);
             this.renderBillDetails(billDetails, billNo);
             
         } catch (error) {
@@ -245,13 +282,13 @@ class BillSummary {
             modalBody.innerHTML = `
                 <div class="error-message">
                     <i class="fas fa-exclamation-triangle"></i>
-                    Failed to load bill details. Please try again.
+                    Failed to load bill details: ${error.message}
                 </div>
             `;
         }
     }
 
-    renderBillDetails(details, billNo) {
+        renderBillDetails(details, billNo) {
         const modalBody = document.getElementById('billDetailsContent');
         
         if (!details || details.length === 0) {
@@ -276,7 +313,8 @@ class BillSummary {
                     <span><strong>Total Amount:</strong> ₹${totalAmount.toFixed(2)}</span>
                 </div>
             </div>
-                        <div class="bill-details-table-container">
+            
+            <div class="bill-details-table-container">
                 <table class="bills-table">
                     <thead>
                         <tr>
@@ -311,49 +349,22 @@ class BillSummary {
             return;
         }
 
-        // Confirm deletion
         if (!confirm(`Are you sure you want to delete bill ${billNo}? This action cannot be undone.`)) {
             return;
         }
 
         try {
-            let response;
-            try {
-                response = await fetch(`${this.apiBaseUrl}/api/fnb_bill_summary_legphel_eats/${billNo}`, {
-                    method: 'DELETE',
-                    mode: 'cors',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                });
-            } catch (httpsError) {
-                response = await fetch(`${CONFIG.API_BASE_URL_FALLBACK}/api/fnb_bill_summary_legphel_eats/${billNo}`, {
-                    method: 'DELETE',
-                    mode: 'cors',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                });
-            }
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            // Show success message
+            await window.apiService.deleteBill(billNo);
             this.showSuccess(`Bill ${billNo} deleted successfully`);
-            
-            // Reload data
             this.loadData();
             
         } catch (error) {
             console.error('Error deleting bill:', error);
-            this.showError('Failed to delete bill. Please try again.');
+            this.showError('Failed to delete bill: ' + error.message);
         }
     }
 
     showError(message) {
-        // Create a temporary error notification
         const errorDiv = document.createElement('div');
         errorDiv.className = 'error-notification';
         errorDiv.style.cssText = `
@@ -367,6 +378,7 @@ class BillSummary {
             z-index: 1001;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
             animation: slideInRight 0.3s ease-out;
+            max-width: 400px;
         `;
         errorDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${message}`;
         
@@ -378,7 +390,6 @@ class BillSummary {
     }
 
     showSuccess(message) {
-        // Create a temporary success notification
         const successDiv = document.createElement('div');
         successDiv.className = 'success-notification';
         successDiv.style.cssText = `
@@ -392,6 +403,7 @@ class BillSummary {
             z-index: 1001;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
             animation: slideInRight 0.3s ease-out;
+            max-width: 400px;
         `;
         successDiv.innerHTML = `<i class="fas fa-check-circle"></i> ${message}`;
         
@@ -413,4 +425,3 @@ class BillSummary {
 document.addEventListener('DOMContentLoaded', () => {
     window.billSummary = new BillSummary();
 });
-
