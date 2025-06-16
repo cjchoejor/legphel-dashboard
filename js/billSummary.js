@@ -67,7 +67,29 @@ class BillSummary {
 
     async loadData() {
         try {
-            const response = await fetch(`${this.apiBaseUrl}/api/fnb_bill_summary_legphel_eats`);
+            // Try different approaches to handle CORS
+            let response;
+            
+            try {
+                // First try with HTTPS
+                response = await fetch(`${this.apiBaseUrl}/api/fnb_bill_summary_legphel_eats`, {
+                    method: 'GET',
+                    mode: 'cors',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+            } catch (httpsError) {
+                console.log('HTTPS failed, trying HTTP...');
+                // If HTTPS fails, try HTTP
+                response = await fetch(`${CONFIG.API_BASE_URL_FALLBACK}/api/fnb_bill_summary_legphel_eats`, {
+                    method: 'GET',
+                    mode: 'cors',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+            }
             
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -78,8 +100,28 @@ class BillSummary {
             
         } catch (error) {
             console.error('Error loading bills:', error);
-            this.showError('Failed to load bills. Please check your connection.');
+            this.showCORSError();
         }
+    }
+
+    showCORSError() {
+        const tbody = document.getElementById('billsTableBody');
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" style="text-align: center; padding: 40px; color: #dc2626;">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 24px; margin-bottom: 10px;"></i><br>
+                    <strong>Connection Error</strong><br>
+                    <small style="color: #888; margin-top: 10px; display: block;">
+                        Cannot connect to server. This might be due to:<br>
+                        • CORS (Cross-Origin) restrictions<br>
+                        • Server is not running<br>
+                        • Network connectivity issues<br><br>
+                        <strong>For Development:</strong><br>
+                        Your server needs CORS headers to work with HTTPS sites.
+                    </small>
+                </td>
+            </tr>
+        `;
     }
 
     renderBills(bills) {
@@ -182,8 +224,13 @@ class BillSummary {
             `;
             modal.style.display = 'block';
 
-            // Fetch bill details
-            const response = await fetch(`${this.apiBaseUrl}/api/fnb_bill_details_legphel_eats/${billNo}`);
+            // Try to fetch bill details
+            let response;
+            try {
+                response = await fetch(`${this.apiBaseUrl}/api/fnb_bill_details_legphel_eats/${billNo}`);
+            } catch (httpsError) {
+                response = await fetch(`${CONFIG.API_BASE_URL_FALLBACK}/api/fnb_bill_details_legphel_eats/${billNo}`);
+            }
             
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -229,24 +276,27 @@ class BillSummary {
                     <span><strong>Total Amount:</strong> ₹${totalAmount.toFixed(2)}</span>
                 </div>
             </div>
-            
-            <div class="bill-details-table-container">
+                        <div class="bill-details-table-container">
                 <table class="bills-table">
                     <thead>
                         <tr>
                             <th>Menu Item</th>
-                            <th>Quantity</th>
                             <th>Rate</th>
+                            <th>Quantity</th>
                             <th>Amount</th>
+                            <th>Date</th>
+                            <th>Time</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${details.map(item => `
                             <tr>
                                 <td>${item.menu_name || 'N/A'}</td>
-                                <td>${item.quanity || 0}</td>
                                 <td>₹${this.formatAmount(item.rate)}</td>
+                                <td>${item.quanity || 0}</td>
                                 <td>₹${this.formatAmount(item.amount)}</td>
+                                <td>${this.formatDate(item.date)}</td>
+                                <td>${this.formatTime(item.time)}</td>
                             </tr>
                         `).join('')}
                     </tbody>
@@ -267,9 +317,24 @@ class BillSummary {
         }
 
         try {
-            const response = await fetch(`${this.apiBaseUrl}/api/fnb_bill_summary_legphel_eats/${billNo}`, {
-                method: 'DELETE'
-            });
+            let response;
+            try {
+                response = await fetch(`${this.apiBaseUrl}/api/fnb_bill_summary_legphel_eats/${billNo}`, {
+                    method: 'DELETE',
+                    mode: 'cors',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+            } catch (httpsError) {
+                response = await fetch(`${CONFIG.API_BASE_URL_FALLBACK}/api/fnb_bill_summary_legphel_eats/${billNo}`, {
+                    method: 'DELETE',
+                    mode: 'cors',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+            }
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -301,6 +366,7 @@ class BillSummary {
             border-radius: 5px;
             z-index: 1001;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            animation: slideInRight 0.3s ease-out;
         `;
         errorDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${message}`;
         
@@ -325,6 +391,7 @@ class BillSummary {
             border-radius: 5px;
             z-index: 1001;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            animation: slideInRight 0.3s ease-out;
         `;
         successDiv.innerHTML = `<i class="fas fa-check-circle"></i> ${message}`;
         
@@ -346,3 +413,4 @@ class BillSummary {
 document.addEventListener('DOMContentLoaded', () => {
     window.billSummary = new BillSummary();
 });
+
