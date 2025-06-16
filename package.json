@@ -1,0 +1,23 @@
+{
+  "name": "legphel-hotel-pos-dashboard",
+  "version": "1.0.0",
+  "description": "Restaurant POS Dashboard for Legphel Hotel",
+  "main": "index.html",
+  "scripts": {
+    "start": "serve -s .",
+    "build": "echo 'No build process needed for static site'",
+    "dev": "live-server --port=8080"
+  },
+  "keywords": [
+    "restaurant",
+    "pos",
+    "dashboard",
+    "hotel"
+  ],
+  "author": "Legphel Hotel",
+  "license": "MIT",
+  "devDependencies": {
+    "live-server": "^1.2.2",
+    "serve": "^14.2.0"
+  }
+}
