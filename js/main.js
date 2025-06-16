@@ -1,7 +1,7 @@
 // Main dashboard functionality
 class Dashboard {
     constructor() {
-        this.apiBaseUrl = 'http://119.105.142:3800/api';
+        this.apiBaseUrl = CONFIG.API_BASE_URL;
         this.currentSection = 'bill-summary';
         this.init();
     }

@@ -1,7 +1,7 @@
 // Bill Summary functionality
 class BillSummary {
     constructor() {
-        this.apiBaseUrl = 'http://119.105.142:3800/api';
+        this.apiBaseUrl = CONFIG.API_BASE_URL;
         this.refreshInterval = null;
         this.init();
     }
@@ -57,17 +57,17 @@ class BillSummary {
     }
 
     startAutoRefresh() {
-        // Refresh data every 10 seconds
+        // Refresh data every 5 seconds as requested
         this.refreshInterval = setInterval(() => {
             if (document.getElementById('bill-summary').classList.contains('active')) {
                 this.loadData();
             }
-        }, 10000);
+        }, CONFIG.REFRESH_INTERVAL);
     }
 
     async loadData() {
         try {
-            const response = await fetch(`${this.apiBaseUrl}/fnb_bill_summary_legphel_eats`);
+            const response = await fetch(`${this.apiBaseUrl}/api/fnb_bill_summary_legphel_eats`);
             
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -183,7 +183,7 @@ class BillSummary {
             modal.style.display = 'block';
 
             // Fetch bill details
-            const response = await fetch(`${this.apiBaseUrl}/fnb_bill_details_legphel_eats/${billNo}`);
+            const response = await fetch(`${this.apiBaseUrl}/api/fnb_bill_details_legphel_eats/${billNo}`);
             
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -235,22 +235,18 @@ class BillSummary {
                     <thead>
                         <tr>
                             <th>Menu Item</th>
-                            <th>Rate</th>
                             <th>Quantity</th>
+                            <th>Rate</th>
                             <th>Amount</th>
-                            <th>Date</th>
-                            <th>Time</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${details.map(item => `
                             <tr>
                                 <td>${item.menu_name || 'N/A'}</td>
-                                <td>₹${this.formatAmount(item.rate)}</td>
                                 <td>${item.quanity || 0}</td>
+                                <td>₹${this.formatAmount(item.rate)}</td>
                                 <td>₹${this.formatAmount(item.amount)}</td>
-                                <td>${this.formatDate(item.date)}</td>
-                                <td>${this.formatTime(item.time)}</td>
                             </tr>
                         `).join('')}
                     </tbody>
@@ -271,7 +267,7 @@ class BillSummary {
         }
 
         try {
-            const response = await fetch(`${this.apiBaseUrl}/fnb_bill_summary_legphel_eats/${billNo}`, {
+            const response = await fetch(`${this.apiBaseUrl}/api/fnb_bill_summary_legphel_eats/${billNo}`, {
                 method: 'DELETE'
             });
 
